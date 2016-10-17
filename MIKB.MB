@@ -1,0 +1,104 @@
+Type Logical
+
+Sub OnWinChange()
+    If numtables() > oldTables Then
+        OpenKnowledgeBase (oldTables)
+    Else
+        CloseKnowledgeBase (oldTables)
+    End If
+End Sub
+
+Sub SetKnowledgeBase(tableName As String, MetadataPath As String, Value As String)
+    metadata table <tabName> set key <keyName> to <keyValue>
+End Sub
+
+Sub OpenKnowledgeBase(start As Integer)
+    'KnowledgeBase tables have metadata "/KnowledgeBase" = "TRUE"
+    For i = start To numtables()
+        'Get table name
+        tabName = tableinfo(i, 1)
+        
+        'Get LCode from table name
+        LCode = FindLCode(tabName)
+        
+        'If LCode found open the knowledgeBase table
+        If LCode <> "" Then
+            Open Table knowledgeRoot & LCode & ".TAB" Hide
+        End If
+    Next
+End Sub
+
+Sub CloseKnowledgeBase()
+    'Look at all tables, find LCodes, then look over all KnowledgeBase tables.
+    'If KnowledgeBase tables are still open but needn't be open, then close them.
+    'KnowledgeBase tables have metadata "/KnowledgeBase" = "TRUE"
+    
+    'Make knowledge base tables array
+    Dim kbTabs(1) As String
+    Dim isKnowledgeBase As Logical, i, j As Integer
+    
+    'Counter for size of kbTabs
+    j = 1
+    
+    'Create array of knowledge base tables
+    For i = 1 To numtables()
+        'Get metadata from table (find if it is in te knowledge base or not.
+        metadata get "/KnowledgeBase" into isKnowledgeBase from tableinfo(i,1)
+        
+        isKnowledgeBase = getMetadata$(tableinfo(i, 1), "\KnowledgeBase")
+        
+        If isKnowledgeBase Then
+            'If the size of the table isn't 1
+            If j <> 1 Then
+                Redim Preserve j
+            End If
+            
+            'Drag table name into kbTabs
+            kbTabs(j) = tableinfo(i, 1)
+            
+            'Increment j
+            j = j + 1
+        End If
+    Next
+End Sub
+
+Function FindLCode(tabName)
+    FindLCode = findPattern(tabName, "L####")
+End Function
+
+Function findPattern(someString As String, somePattern As String) As String
+    For i = 1 To Len(someString) - Len(somePattern)
+        'Get string to test this time
+        Dim sTest As String
+        sTest = Mid(someString, i, Len(somePattern))
+        
+        'Check Pattern
+        If checkPattern(sTest, somePattern) Then
+            findPattern = sTest
+            Exit Function
+        End If
+    Next
+    
+    findPattern = ""
+End Function
+
+Function checkPattern(sTest As String, sPattern As String) As Boolean
+    Dim cTest, cPatt As String * 1
+    Dim bChecker As Boolean
+    bChecker = True
+    If Len(sTest) <> Len(sPattern) Then checkPattern = False: Exit Function
+    For i = 1 To Len(sPattern)
+        cTest = Mid(sTest, i, 1)
+        cPatt = Mid(sPattern, i, 1)
+        If cPatt = "#" Then
+            'special case check numbr
+            bChecker = bChecker And Asc(cTest) >= 48 And Asc(cTest) <= 57
+        ElseIf False Then
+            '...
+        Else
+            bChecker = bChecker And cPatt = cTest
+        End If
+    Next i
+    
+    checkPattern = bChecker
+End Function
